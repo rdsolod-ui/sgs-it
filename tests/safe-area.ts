@@ -91,7 +91,9 @@ try{
   assert.equal(await page.locator('.site-footer').isVisible(),false);
   await page.screenshot({path:`docs/research/safe-area/${engine}-${theme}-keyboard.png`});
   await page.getByRole('button',{name:'Возможности parkops',exact:true}).click();
-  await within(page,'.modal,.modal-header',{...scenarios[0],height:430,top:99,bottom:34});
+  // The synthetic keyboard is still open; its top edge, not the home
+  // indicator behind it, bounds the visible dialog.
+  await within(page,'.modal,.modal-header',{...scenarios[0],height:430,top:99,bottom:0});
   await page.getByRole('button',{name:'Закрыть',exact:true}).click();
   await viewport(844,0);await page.waitForFunction(()=>document.documentElement.style.getPropertyValue('--app-height')==='844px');
   await within(page,'.site-header,.composer,.site-footer',scenarios[0]);

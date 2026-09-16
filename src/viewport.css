@@ -92,6 +92,10 @@ body:has(.experience) { overflow: hidden; overscroll-behavior-y: none; }
  /* iOS focus zoom also applies to landscape phones and tablets. */
  input, textarea, select, .composer textarea { font-size: 16px; }
 }
+@media (pointer: coarse) {
+ input, textarea, select, .composer textarea { font-size: 16px; }
+ .icon-button { min-width: 44px; min-height: 44px; }
+}
 @media (max-width: 700px) {
  :root { --page-gutter: 21px; --dialog-gap: 12px; --intro-gutter: 20px; --intro-block-gap: 16px; }
  .experience { padding-top: calc(var(--safe-top) + 4px); }
