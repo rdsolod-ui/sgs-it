@@ -9,6 +9,8 @@ import {existsSync} from 'node:fs';
 import {verify} from 'argon2';
 import {z} from 'zod';
 import ExcelJS from 'exceljs';
+import {auditSchema,emptyAudit} from '../shared/audit.js';
+import {renderAudit} from './audit-report.js';
 import OpenAI from 'openai';
 import {getEncoding} from 'js-tiktoken';
 import {db,transaction} from './db.js';
@@ -99,7 +101,33 @@ app.get('/api/admin/conversations/:id',async req=>{await admin(req);const id=z.s
 app.get('/api/admin/leads/:id',async req=>{await admin(req);const id=z.string().uuid().parse((req.params as any).id);const lead=(await db.query('SELECT * FROM leads WHERE id=$1',[id])).rows[0];if(!lead)fail('Заявка не найдена.',404);const [consents,activities,messages]=await Promise.all([db.query('SELECT kind,granted,version,document_hash,created_at FROM consent_events WHERE lead_id=$1',[id]),db.query('SELECT * FROM activities WHERE lead_id=$1 ORDER BY id DESC',[id]),db.query('SELECT role,body,created_at FROM messages WHERE visitor_id=$1 ORDER BY id',[lead.visitor_id])]);return{lead,consents:consents.rows,activities:activities.rows,messages:messages.rows};});
 app.patch('/api/admin/leads/:id',async req=>{const who=await admin(req);const id=z.string().uuid().parse((req.params as any).id);const b=z.object({stage:z.enum(stages),nextAction:z.string().trim().max(1000),dueAt:z.string().datetime().nullable(),note:z.string().trim().max(3000).optional()}).parse(req.body);return transaction(async c=>{const old=(await c.query('SELECT stage FROM leads WHERE id=$1 FOR UPDATE',[id])).rows[0];if(!old)fail('Заявка не найдена.',404);await c.query('UPDATE leads SET stage=$2,next_action=$3,due_at=$4,updated_at=now() WHERE id=$1',[id,b.stage,b.nextAction,b.dueAt]);await c.query('INSERT INTO activities(lead_id,actor,kind,body) VALUES($1,$2,$3,$4)',[id,who,'updated',`${stageNames[old.stage]} → ${stageNames[b.stage]}. ${b.note||b.nextAction}`]);return{ok:true};});});
 app.get('/api/admin/export/:format',async(req,reply)=>{const who=await admin(req);const fmt=z.enum(['csv','xlsx']).parse((req.params as any).format);const scope=z.enum(['leads','messages']).default('leads').parse((req.query as any).scope);const rows=(await db.query(scope==='messages'?'SELECT id,visitor_id,role,body,created_at FROM messages ORDER BY id DESC':'SELECT id,name,company,contact,channel,services,stage,brief,next_action,created_at FROM leads ORDER BY created_at DESC')).rows;const fields=scope==='messages'?['id','visitor_id','role','body','created_at']:['id','name','company','contact','channel','services','stage','brief','next_action','created_at'];const clean=rows.map(r=>fields.map(k=>safeCell(Array.isArray(r[k])?r[k].join(', '):r[k] instanceof Date?r[k].toISOString():r[k])));await db.query('INSERT INTO admin_audit(actor,action) VALUES($1,$2)',[who,`export_${fmt}`]);reply.header('Content-Disposition',`attachment; filename="sgsit-leads.${fmt}"`);if(fmt==='csv')return reply.type('text/csv; charset=utf-8').send('\uFEFF'+[fields,...clean].map(r=>r.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(';')).join('\r\n'));const workbook=new ExcelJS.Workbook();const sheet=workbook.addWorksheet('Заявки');sheet.addRow(fields);clean.forEach(r=>sheet.addRow(r));sheet.getRow(1).font={bold:true};sheet.columns.forEach(c=>{c.width=24;});return reply.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').send(Buffer.from(await workbook.xlsx.writeBuffer()));});
-app.get('/api/admin/leads/:id/audit',async(req,reply)=>{const who=await admin(req);const id=z.string().uuid().parse((req.params as any).id);const l=(await db.query('SELECT * FROM leads WHERE id=$1',[id])).rows[0];if(!l)fail('Заявка не найдена.',404);const esc=(x:string)=>x.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));const sections=['Качество и полнота данных','Аналитика продаж и CRM','Маркетинговая аналитика и атрибуция','Операционная аналитика','Управленческая отчётность и доступы','Рекомендации и план внедрения'];await db.query('INSERT INTO admin_audit(actor,action,target) VALUES($1,$2,$3)',[who,'audit_template',id]);reply.header('Content-Disposition','attachment; filename="parkops-audit.html"');return reply.type('text/html; charset=utf-8').send(`<!doctype html><html lang="ru"><meta charset="utf-8"><title>parkops — аудит</title><style>body{font:16px/1.6 Arial;max-width:850px;margin:60px auto;color:#18232d}h1{font-size:40px}h2{margin-top:40px}small{color:#526270}.draft{padding:16px;background:#eef2f5}section{break-inside:avoid}@media print{body{margin:15mm}.draft{border:1px solid}}</style><small>SGS IT / parkops · ${new Date().toLocaleDateString('ru-RU')}</small><h1>Аудит аналитики бизнеса</h1><p>${esc(l.company||l.name)}</p><p class="draft">Рабочий шаблон. Исследование ещё не проведено. Выводы и рекомендации заполняет специалист на основании проверенных данных.</p><h2>Запрос и границы аудита</h2><p>${esc(l.brief||'Требует уточнения')}</p>${sections.map((s,i)=>`<section><h2>${i+1}. ${s}</h2><p><b>Источники и период:</b> требует заполнения.</p><p><b>Наблюдения и доказательства:</b> требует исследования.</p><p><b>Ограничения:</b> требует проверки.</p><p><b>Рекомендации:</b> формируются по результатам.</p><p><b>Приоритет, ответственный, критерий результата:</b> согласуются отдельно.</p></section>`).join('')}<h2>Следующий шаг</h2><p>${esc(l.next_action||'Согласовать источники, доступы и объём исследования.')}</p></html>`);});
+app.get('/api/admin/leads/:id/audit-data',async req=>{
+ await admin(req);const id=z.string().uuid().parse((req.params as any).id);
+ if(!(await db.query('SELECT id FROM leads WHERE id=$1',[id])).rowCount)fail('Заявка не найдена.',404);
+ const r=(await db.query('SELECT * FROM lead_audits WHERE lead_id=$1',[id])).rows[0];
+ return{version:r?.version||0,document:r?.document||emptyAudit(),updatedAt:r?.updated_at||null,updatedBy:r?.updated_by||null};
+});
+app.patch('/api/admin/leads/:id/audit-data',{bodyLimit:131072},async req=>{
+ const who=await admin(req);const id=z.string().uuid().parse((req.params as any).id);
+ const b=z.object({version:z.number().int().min(0).max(2147483646),document:auditSchema}).parse(req.body);
+ return transaction(async c=>{
+  if(!(await c.query('SELECT id FROM leads WHERE id=$1 FOR UPDATE',[id])).rowCount)fail('Заявка не найдена.',404);
+  const old=(await c.query('SELECT version FROM lead_audits WHERE lead_id=$1',[id])).rows[0];
+  if((old?.version||0)!==b.version)fail('Документ изменён. Загрузите актуальную версию перед сохранением.',409);
+  const r=(await c.query('INSERT INTO lead_audits(lead_id,document,version,updated_by) VALUES($1,$2,$3,$4) ON CONFLICT(lead_id) DO UPDATE SET document=EXCLUDED.document,version=EXCLUDED.version,updated_by=EXCLUDED.updated_by,updated_at=now() RETURNING *',[id,JSON.stringify(b.document),b.version+1,who])).rows[0];
+  await c.query('UPDATE leads SET updated_at=now() WHERE id=$1',[id]);
+  await c.query('INSERT INTO activities(lead_id,actor,kind,body) VALUES($1,$2,$3,$4)',[id,who,'audit_saved',`Аудит v${r.version}: ${b.document.status==='ready'?'готов к передаче':'черновик'}`]);
+  await c.query('INSERT INTO admin_audit(actor,action,target) VALUES($1,$2,$3)',[who,'audit_saved',id]);
+  return{version:r.version,document:r.document,updatedAt:r.updated_at,updatedBy:r.updated_by};
+ });
+});
+app.get('/api/admin/leads/:id/audit',async(req,reply)=>{
+ const who=await admin(req);const id=z.string().uuid().parse((req.params as any).id);
+ const l=(await db.query('SELECT l.*,a.document audit_document,a.version audit_version,a.updated_at audit_updated FROM leads l LEFT JOIN lead_audits a ON a.lead_id=l.id WHERE l.id=$1',[id])).rows[0];if(!l)fail('Заявка не найдена.',404);
+ await db.query('INSERT INTO admin_audit(actor,action,target) VALUES($1,$2,$3)',[who,'audit_export',id]);
+ reply.header('Content-Disposition','attachment; filename="parkops-audit.html"');
+ return reply.type('text/html; charset=utf-8').send(renderAudit(l,l.audit_document||emptyAudit(),l.audit_version||0,(l.audit_updated||new Date()).toISOString().slice(0,10)));
+});
 if(existsSync(resolve('dist'))){await app.register(staticFiles,{root:resolve('dist'),wildcard:false});app.setNotFoundHandler((req,reply)=>req.url.startsWith('/api/')?reply.code(404).send({error:'Не найдено'}):reply.sendFile('index.html'));}
 const shutdown=async()=>{await app.close();await db.end();};process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
 await app.listen({host:env.HOST||'127.0.0.1',port:Number(env.PORT||8787)});

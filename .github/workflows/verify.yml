@@ -44,6 +44,8 @@ jobs:
       - name: Integration tests with PostgreSQL
         run: |
           node dist-server/server/index.js > /tmp/sgsit-api.log 2>&1 &
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true; wait "$api_pid" 2>/dev/null || true' EXIT
           for attempt in {1..30}; do
             if curl -fsS http://127.0.0.1:8787/api/health; then break; fi
             sleep 1
@@ -59,6 +61,24 @@ jobs:
           ln -s "$PWD/dist-preview" .local/preview-root/sgs-it
           python3 -m http.server 5188 --bind 127.0.0.1 --directory .local/preview-root > /tmp/sgsit-preview.log 2>&1 &
           npm run test:preview
+      - name: Full CRM browser workflow
+        env:
+          BROWSER_HEADLESS: '1'
+        run: |
+          node dist-server/server/index.js > /tmp/sgsit-browser-api.log 2>&1 &
+          api_pid=$!
+          npx vite --host 127.0.0.1 --port 5178 > /tmp/sgsit-vite.log 2>&1 &
+          vite_pid=$!
+          trap 'kill "$api_pid" "$vite_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:8787/api/health; then break; fi
+            sleep 1
+          done
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:5178/; then break; fi
+            sleep 1
+          done
+          npm run test:browser
       - name: Package immutable application
         run: python3 tools/package_release.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

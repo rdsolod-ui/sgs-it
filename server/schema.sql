@@ -15,3 +15,12 @@ INSERT INTO migrations(id) VALUES('001_initial') ON CONFLICT DO NOTHING;
 ALTER TABLE ai_usage ALTER COLUMN visitor_id DROP NOT NULL;
 ALTER TABLE ai_usage DROP CONSTRAINT IF EXISTS ai_usage_visitor_id_fkey;
 ALTER TABLE ai_usage ADD CONSTRAINT ai_usage_visitor_id_fkey FOREIGN KEY(visitor_id) REFERENCES visitors(id) ON DELETE SET NULL;
+
+CREATE TABLE IF NOT EXISTS lead_audits (
+ lead_id uuid PRIMARY KEY REFERENCES leads ON DELETE CASCADE,
+ document jsonb NOT NULL,
+ version integer NOT NULL CHECK(version>0),
+ updated_by text NOT NULL,
+ updated_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO migrations(id) VALUES('002_lead_audits') ON CONFLICT DO NOTHING;
