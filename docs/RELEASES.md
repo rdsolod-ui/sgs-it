@@ -23,3 +23,10 @@ Runtime logs, backup locations and private operational reports are kept outside 
 - Tracked HTTP validation and HTTPS Nginx configs for sgsit.ru/www.sgsit.ru, canonical redirects, secure production origin/cookies and automatic certificate renewal.
 - Domain preparation and activation scripts retain private backups and rollback failed activation. DNS changes are performed separately in the domain owner's panel.
 - The public interface displays a local brief instead of contact fields while collection is disabled. Nginx accepts the audit editor's validated request size.
+
+## 2026-09-16 — modular brand, sharing and origin story
+
+- Flat logo, SVG/ICO/PNG favicons and PWA/Apple icons use four modules around a blue core.
+- Generated 1200×630 social card: “Где ваш бизнес теряет деньги?”; static Open Graph/Twitter tags, canonical, descriptive title, JSON-LD, robots and sitemap. No invented prices, ratings or company details.
+- A 24-second introduction follows greeting → Python-inspired code → 8-bit modules → 16-bit core → the actual 3D mascot. It restarts on reload, supports pause/skip/Escape and stops progressing in a hidden tab. Reduced-motion users see a static introduction.
+- Dedicated browser checks cover the story, reload, controls, mobile layout, assets and raw HTML metadata.
