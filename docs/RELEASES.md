@@ -37,3 +37,9 @@ Runtime logs, backup locations and private operational reports are kept outside 
 - VisualViewport-aware chat and dialogs keep controls above the keyboard, including viewport panning; pinch zoom remains available.
 - Cookie notice occupies its own row; phone/tablet inputs avoid focus zoom, and closing the intro no longer focuses a text field automatically.
 - Chromium and WebKit geometry tests cover both themes and synthetic cutout/keyboard scenarios. Physical-device acceptance is documented separately in `MOBILE_VIEWPORT.md`.
+
+## 2026-09-16 — production links in the project catalog
+
+- SGS IT has separate website and admin links to https://sgsit.ru/ and https://sgsit.ru/admin.
+- The card uses two keyboard-accessible anchors inside an article; the static preview remains available separately.
+- The scoped card fragment lives in `deploy/catalog/sgs-it.html`; README lists current public endpoints. Application runtime is unchanged.
