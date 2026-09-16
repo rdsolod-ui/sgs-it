@@ -1,0 +1,11 @@
+[Unit]
+Description=SGS IT retention cleanup
+After=postgresql.service
+[Service]
+Type=oneshot
+User=sgsit
+Group=sgsit
+WorkingDirectory=/srv/sgsit/current
+EnvironmentFile=/etc/sgsit/app.env
+ExecStart=/usr/bin/node dist-server/scripts/retention.js
+NoNewPrivileges=true

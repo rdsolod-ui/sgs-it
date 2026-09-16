@@ -1,0 +1,4 @@
+const CACHE='sgsit-static-v1';
+self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(['/icon.svg','/manifest.webmanifest','/offline.html'])));});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('sgsit-static-')&&k!==CACHE).map(k=>caches.delete(k)))));});
+self.addEventListener('fetch',event=>{const u=new URL(event.request.url);if(event.request.mode==='navigate'&&!u.pathname.startsWith('/admin')){event.respondWith(fetch(event.request).catch(()=>caches.match('/offline.html')));return;}if(event.request.method!=='GET'||u.origin!==self.location.origin||!/^\/(assets|models|fonts)\//.test(u.pathname))return;event.respondWith(caches.open(CACHE).then(async c=>{const cached=await c.match(event.request);if(cached)return cached;const response=await fetch(event.request);if(response.ok)c.put(event.request,response.clone());return response;}));});

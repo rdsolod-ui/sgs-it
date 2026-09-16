@@ -1,0 +1,20 @@
+[Unit]
+Description=SGS IT parkops application
+After=network.target postgresql.service
+[Service]
+Type=simple
+User=sgsit
+Group=sgsit
+WorkingDirectory=/srv/sgsit/current
+EnvironmentFile=/etc/sgsit/app.env
+ExecStart=/usr/bin/node dist-server/server/index.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/sgsit/shared
+UMask=0077
+[Install]
+WantedBy=multi-user.target

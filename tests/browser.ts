@@ -1,0 +1,33 @@
+import {chromium} from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import assert from 'node:assert/strict';
+import {randomUUID,randomBytes} from 'node:crypto';
+import {hash} from 'argon2';
+import {writeFile,mkdir} from 'node:fs/promises';
+import {db} from '../server/db.js';
+await mkdir('docs/research',{recursive:true});
+const id=randomUUID(),login='ui-'+id,password=randomBytes(24).toString('base64url');
+await db.query('INSERT INTO admins(id,login,password_hash) VALUES($1,$2,$3)',[id,login,await hash(password)]);
+const browser=process.env.BROWSER_HEADLESS==='1'?await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader']}):await chromium.connectOverCDP(process.env.BROWSER_CDP_URL||'http://127.0.0.1:9223');
+const context=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce',colorScheme:'light'});
+await context.addInitScript(()=>{sessionStorage.setItem('sgs-intro','1');localStorage.setItem('sgs-cookies','essential-only');});
+const page=await context.newPage();const passed:string[]=[];const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+const capture=async(name:string)=>{await page.screenshot({path:`docs/research/${name}.png`,timeout:15000});};
+let leadId:string|undefined;
+try{
+ await page.goto('http://127.0.0.1:5178/');await page.bringToFront();const c=await context.newCDPSession(page);await c.send('Emulation.setFocusEmulationEnabled',{enabled:true});
+ await page.waitForFunction(()=>document.querySelector('.core-canvas')?.getAttribute('data-loaded')==='true');await page.getByRole('textbox',{name:'Сообщение Синку'}).waitFor();
+ await page.waitForFunction(()=>!(document.querySelector('.composer textarea') as HTMLTextAreaElement)?.disabled);passed.push('Scene and server session load');
+ await capture('qa-desktop-light');
+ const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();await writeFile('docs/research/accessibility-home.json',JSON.stringify(axe.violations,null,2));assert.equal(axe.violations.length,0,'Homepage accessibility violations');passed.push('Homepage axe WCAG A/AA');
+ await page.getByRole('button',{name:'Включить тёмную тему'}).click();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');await capture('qa-desktop-dark');await page.reload();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');passed.push('Theme persists across reload');
+ await page.setViewportSize({width:390,height:844});await capture('qa-mobile-dark');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);passed.push('390px viewport has no horizontal overflow');
+ await page.getByRole('textbox',{name:'Сообщение Синку'}).fill('Покажи возможности parkops');await page.getByRole('button',{name:'Отправить сообщение',exact:true}).click();await page.getByRole('button',{name:'Посмотреть на примере'}).waitFor();passed.push('Chat returns response and demo action');
+ await page.getByRole('button',{name:'Посмотреть на примере'}).click();await page.getByText('Интерактивная иллюстрация · синтетические данные').waitFor();await capture('qa-demo-mobile');await page.getByRole('button',{name:'Обсудить мой бизнес'}).click();await page.locator('input[name="name"]').fill('UI тест '+id.slice(0,6));await page.locator('input[name="company"]').fill('Синтетическая компания');await page.locator('input[name="contact"]').fill('ui-test@example.com');assert.equal(await page.locator('input[name="marketing"]').isChecked(),false);await page.locator('input[name="data"]').check();await page.locator('input[name="callback"]').check();
+ const formAxe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();await writeFile('docs/research/accessibility-form.json',JSON.stringify(formAxe.violations,null,2));assert.equal(formAxe.violations.length,0,'Form accessibility violations');passed.push('Form accessible; marketing consent starts off');
+ await page.getByRole('button',{name:'Передать задачу команде'}).click();await page.getByText('Контекст передан.').waitFor();leadId=(await db.query('SELECT id FROM leads WHERE name=$1',['UI тест '+id.slice(0,6)])).rows[0].id;passed.push('Browser submission reaches PostgreSQL');
+ await page.goto('http://127.0.0.1:5178/admin');await page.locator('input[name="login"]').fill(login);await page.locator('input[name="password"]').fill(password);await page.getByRole('button',{name:'Войти',exact:true}).click();await page.getByRole('heading',{name:'Рабочий стол'}).waitFor();await page.setViewportSize({width:1440,height:900});await capture('qa-admin');await page.getByRole('button',{name:'UI тест '+id.slice(0,6),exact:true}).click();await page.getByRole('heading',{name:'Согласия',exact:true}).waitFor();passed.push('Admin login and lead detail');
+ await page.locator('select[name="stage"]').selectOption('audit');await page.locator('input[name="nextAction"]').fill('Уточнить источники для аудита');await page.getByRole('button',{name:'Сохранить изменения'}).click();await page.getByRole('button',{name:'Закрыть',exact:true}).click();await page.getByText('Уточнить источники для аудита').waitFor();passed.push('CRM stage and next action saved');
+ assert.equal(errors.length,0,'Browser JavaScript errors');passed.push('No uncaught browser errors');
+ await writeFile('docs/research/browser-tests.json',JSON.stringify({passed:passed.length,tests:passed,errors},null,2));console.log(JSON.stringify({passed:passed.length,tests:passed}));
+}finally{if(leadId){const v=(await db.query('SELECT visitor_id FROM leads WHERE id=$1',[leadId])).rows[0]?.visitor_id;await db.query('DELETE FROM leads WHERE id=$1',[leadId]);if(v){await db.query('DELETE FROM ai_usage WHERE visitor_id=$1',[v]);await db.query('DELETE FROM visitors WHERE id=$1',[v]);}}await db.query('DELETE FROM admins WHERE id=$1',[id]);await db.query('DELETE FROM admin_audit WHERE actor=$1',[login]);await db.end();await context.close();await browser.close();}

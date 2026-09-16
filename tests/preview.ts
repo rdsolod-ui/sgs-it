@@ -1,0 +1,19 @@
+import {chromium} from '@playwright/test';
+import assert from 'node:assert/strict';
+import {mkdir,writeFile} from 'node:fs/promises';
+const url=process.env.PREVIEW_URL||'http://127.0.0.1:5188/sgs-it/';
+const browser=process.env.BROWSER_HEADLESS==='1'?await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader']}):await chromium.connectOverCDP(process.env.BROWSER_CDP_URL||'http://127.0.0.1:9223');
+const context=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce'});const page=await context.newPage();const errors:string[]=[],apiCalls:string[]=[],badResources:string[]=[];
+page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(new URL(r.url()).pathname.includes('/api/'))apiCalls.push(r.url());});page.on('response',r=>{if(r.status()>=400)badResources.push(r.url()+':'+r.status());});
+await context.addInitScript(()=>{sessionStorage.setItem('sgs-intro','1');localStorage.setItem('sgs-cookies','essential-only');});const tests:string[]=[];
+await mkdir('docs/research',{recursive:true});
+try{
+ await page.goto(url);await page.bringToFront();const c=await context.newCDPSession(page);await c.send('Emulation.setFocusEmulationEnabled',{enabled:true});await page.waitForFunction(()=>document.querySelector('.core-canvas')?.getAttribute('data-loaded')==='true');await page.getByText('Демонстрационный стенд',{exact:true}).waitFor();tests.push('Public preview and GLB loaded');
+ await page.getByRole('textbox',{name:'Сообщение Синку'}).fill('Покажи возможности parkops');await page.getByRole('button',{name:'Отправить сообщение',exact:true}).click();await page.getByRole('button',{name:'Посмотреть на примере'}).waitFor();tests.push('Local chat responds');await page.getByRole('button',{name:'Посмотреть на примере'}).click();await page.getByText('Интерактивная иллюстрация · синтетические данные').waitFor();tests.push('Product demonstration opens');await page.getByRole('button',{name:'Обсудить мой бизнес'}).click();await page.getByRole('heading',{name:'Аудит начинается с данных.'}).waitFor();assert.equal(await page.locator('input[name="contact"]').count(),0);tests.push('No personal-data form on public preview');await page.getByRole('button',{name:'Закрыть',exact:true}).click();
+ await page.reload();await page.getByText('Демонстрационный стенд',{exact:true}).waitFor();assert.equal(await page.locator('.message').count(),0);tests.push('Chat memory clears on reload');
+ for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);tests.push('No overflow at '+width);}
+ const manifest=await page.evaluate(async()=>{const r=await fetch(document.querySelector<HTMLLinkElement>('link[rel="manifest"]')!.href);return r.json();});assert.equal(manifest.scope,'/sgs-it/');tests.push('PWA manifest isolated');
+ await page.waitForFunction(()=>navigator.serviceWorker?.controller!==null);const scopes=await page.evaluate(async()=>(await navigator.serviceWorker.getRegistrations()).map(x=>x.scope));assert.ok(scopes.every(x=>new URL(x).pathname==='/sgs-it/'));tests.push('Service worker isolated');
+ assert.deepEqual(errors,[]);assert.deepEqual(apiCalls,[]);assert.deepEqual(badResources,[]);tests.push('No JS errors, missing resources or API calls');
+ await page.screenshot({path:'docs/research/public-preview.png'});await writeFile('docs/research/preview-tests.json',JSON.stringify({url,tests,errors,apiCalls,badResources},null,2));console.log(JSON.stringify({passed:tests.length,url}));
+}finally{await context.close();await browser.close();}

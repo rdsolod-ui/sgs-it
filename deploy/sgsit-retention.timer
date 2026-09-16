@@ -1,0 +1,7 @@
+[Unit]
+Description=Daily SGS IT retention cleanup
+[Timer]
+OnCalendar=daily
+Persistent=true
+[Install]
+WantedBy=timers.target

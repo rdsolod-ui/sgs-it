@@ -1,0 +1,4 @@
+import {previewRequest} from './preview';
+export async function api<T=any>(path:string,body?:unknown,method=body?'POST':'GET'):Promise<T>{if(import.meta.env.VITE_PUBLIC_PREVIEW==='true')return previewRequest(path,body) as Promise<T>;const r=await fetch('/api'+path,{method,headers:body?{'Content-Type':'application/json','X-SGS-Request':'1'}:{},body:body?JSON.stringify(body):undefined,credentials:'same-origin'});const result=await r.json().catch(()=>({error:'Сервис временно недоступен. Попробуйте ещё раз.'}));if(!r.ok)throw Object.assign(new Error(result.error||'Ошибка соединения'),{status:r.status});return result;}
+export const serviceNames:Record<string,string>={audit:'Аудит аналитики',demo:'Демонстрация',meeting:'Диагностическая встреча'};
+export const stageNames:Record<string,string>={new:'Новая',qualified:'Квалифицирована',scheduled:'Встреча',audit:'Аудит',proposal:'Предложение',won:'Клиент',lost:'Закрыта'};

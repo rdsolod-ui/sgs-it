@@ -1,0 +1,65 @@
+name: Verify and package
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: sgsit_ci
+          POSTGRES_PASSWORD: ephemeral-ci-only
+          POSTGRES_DB: sgsit_ci
+        ports: ['55438:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://sgsit_ci:ephemeral-ci-only@127.0.0.1:55438/sgsit_ci
+      APP_ORIGIN: http://127.0.0.1:5178
+      AI_MODE: demo
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run db:migrate
+      - name: Integration tests with PostgreSQL
+        run: |
+          node dist-server/server/index.js > /tmp/sgsit-api.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:8787/api/health; then break; fi
+            sleep 1
+          done
+          npm run test:integration
+      - run: npm run build:preview
+      - name: Package immutable application
+        run: python3 tools/package_release.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sgsit-${{ github.sha }}
+          path: .local/release.tar.gz
+          include-hidden-files: true
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sgsit-preview-${{ github.sha }}
+          path: dist-preview/
+          retention-days: 14

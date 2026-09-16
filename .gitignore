@@ -1,0 +1,21 @@
+node_modules/
+dist/
+dist-server/
+dist-preview/
+.env
+.env.*
+!.env.example
+*.log
+test-results/
+playwright-report/
+.local/
+__pycache__/
+# Internal research and environment-specific operations stay local.
+docs/*
+!docs/DEVELOPMENT.md
+!docs/RELEASES.md
+tools/*
+!tools/package_release.py
+assets/blender/*.blend1
+# Environment-bound staging QA is local only.
+tests/staging-smoke.ts
