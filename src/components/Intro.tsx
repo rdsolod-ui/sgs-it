@@ -25,8 +25,16 @@ export function Intro({dark,reduced,onFinish}:{dark:boolean,reduced:boolean,onFi
  const finish=useCallback(()=>{dialog.current?.close();onFinish();},[onFinish]);
  useEffect(()=>{
   const previous=document.activeElement as HTMLElement|null;
-  dialog.current?.showModal();
-  return()=>{dialog.current?.close();requestAnimationFrame(()=>{if(previous&&previous!==document.body&&previous.isConnected)previous.focus({preventScroll:true});else document.querySelector<HTMLElement>('.experience')?.focus({preventScroll:true});});};
+  const node=dialog.current;
+  node?.showModal();
+  return()=>{node?.close();requestAnimationFrame(()=>{
+   // A user may already have focused a field; never steal that focus. Also
+   // ignore the rehearsal cleanup when StrictMode has reopened the dialog.
+   const active=document.activeElement;
+   if(node?.open||(active&&active!==document.body&&active!==document.documentElement&&active!==node&&!node?.contains(active)))return;
+   if(previous&&previous!==document.body&&previous.isConnected)previous.focus({preventScroll:true});
+   else document.querySelector<HTMLElement>('.experience')?.focus({preventScroll:true});
+  });};
  },[]);
  useEffect(()=>{
   if(reduced||paused)return;

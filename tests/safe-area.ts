@@ -80,7 +80,10 @@ try{
   const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(url,{waitUntil:'domcontentloaded'});
   await page.addStyleTag({content:':root{--safe-top:59px;--safe-bottom:34px}'});
   await page.getByRole('button',{name:'Пропустить вступление',exact:true}).click();
+  await page.waitForFunction(()=>!(document.querySelector('.composer textarea') as HTMLTextAreaElement)?.disabled);
   await page.locator('.composer textarea').focus();
+  await page.waitForTimeout(100);
+  assert.equal(await page.evaluate(()=>document.activeElement?.tagName),'TEXTAREA','Intro cleanup preserves explicit input focus');
   const viewport=async(height:number,offsetTop:number,scale=1)=>page.evaluate(({height,offsetTop,scale})=>{Object.assign(window.visualViewport!,{height,offsetTop,scale});window.visualViewport!.dispatchEvent(new Event('resize'));window.visualViewport!.dispatchEvent(new Event('scroll'));},{height,offsetTop,scale});
   await viewport(390,40);
   await page.waitForFunction(()=>document.documentElement.dataset.keyboard==='true');
