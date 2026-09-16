@@ -5,11 +5,11 @@ Object.assign(manifest,{id:base,start_url:base,scope:base,name:'SGS IT — де�
 manifest.icons=manifest.icons.map(i=>({...i,src:base+i.src.replace(/^\//,'')}));
 await writeFile(root+'/manifest.webmanifest',JSON.stringify(manifest));
 let sw=await readFile('public/sw.js','utf8');
-sw=sw.replace("'sgsit-static-v1'","'sgsit-preview-v1'").replaceAll("sgsit-static-","sgsit-preview-");
+sw=sw.replaceAll('sgsit-static-','sgsit-preview-');
 sw=sw.replaceAll("'/icon.svg'","'/sgs-it/icon.svg'").replaceAll("'/manifest.webmanifest'","'/sgs-it/manifest.webmanifest'").replaceAll("'/offline.html'","'/sgs-it/offline.html'");
 sw=sw.replace("event.request.mode==='navigate'","u.pathname.startsWith('/sgs-it/')&&event.request.mode==='navigate'").replace("/^\\/(assets|models|fonts)\\//","/^\\/sgs-it\\/(assets|models|fonts)\\//");
 await writeFile(root+'/sw.js',sw);
 let offline=await readFile(root+'/offline.html','utf8');await writeFile(root+'/offline.html',offline.replace('href="/"','href="/sgs-it/"'));
 const css=await readFile(root+'/fonts/fonts.css','utf8');await writeFile(root+'/fonts/fonts.css',css.replaceAll('url(/fonts/','url(/sgs-it/fonts/'));
-let html=await readFile(root+'/index.html','utf8');html=html.replace('<meta name="description"','<meta name="robots" content="noindex,nofollow"/><meta name="description"');await writeFile(root+'/index.html',html);
+let html=await readFile(root+'/index.html','utf8');html=html.replace(/<meta name="robots"[^>]*>/,'<meta name="robots" content="noindex,nofollow"/>');await writeFile(root+'/index.html',html);
 console.log('Public preview ready; isolated scope /sgs-it/; no server APIs');
