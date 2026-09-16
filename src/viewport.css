@@ -1,0 +1,151 @@
+/* The canvas reaches every screen edge; only its contents avoid device cutouts.
+   https://webkit.org/blog/7929/designing-websites-for-iphone-x/
+   Keep these tokens shared by the main app, native dialogs and CRM. */
+:root {
+ --safe-top: env(safe-area-inset-top, 0px);
+ --safe-right: env(safe-area-inset-right, 0px);
+ --safe-bottom: env(safe-area-inset-bottom, 0px);
+ --safe-left: env(safe-area-inset-left, 0px);
+ --bottom-clearance: var(--safe-bottom);
+ --viewport-top: 0px;
+ --page-gutter: 46px;
+ --dialog-gap: 16px;
+ --intro-gutter: 48px;
+ --intro-block-gap: 30px;
+}
+html, body, #root { min-height: 100%; background: var(--bg); color: var(--ink); }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body:has(.experience) { overflow: hidden; overscroll-behavior-y: none; }
+:root[data-keyboard=true] { --bottom-clearance: 0px; }
+.experience:focus { outline: none; }
+.experience {
+ position: fixed;
+ top: var(--viewport-top);
+ left: 0;
+ right: 0;
+ height: var(--app-height);
+ min-height: 0;
+ padding: var(--safe-top) max(var(--page-gutter), var(--safe-right)) var(--bottom-clearance) max(var(--page-gutter), var(--safe-left));
+}
+/* Cookie notice participates in layout so it cannot cover the composer. */
+.cookie-note {
+ position: static;
+ order: 4;
+ flex-shrink: 0;
+ align-self: center;
+ width: min(520px, 100%);
+ max-width: none;
+ margin: 0 0 10px;
+ padding: 10px 14px;
+}
+.cookie-note p { flex: 1; }
+.cookie-note > button { min-height: 44px; }
+.modal, .modal.wide {
+ position: fixed;
+ top: calc(var(--viewport-top) + var(--safe-top) + var(--dialog-gap));
+ bottom: auto;
+ left: max(var(--dialog-gap), var(--safe-left));
+ right: max(var(--dialog-gap), var(--safe-right));
+ margin: 0 auto;
+ width: auto;
+ max-width: 620px;
+ max-height: calc(var(--app-height) - var(--safe-top) - var(--bottom-clearance) - 2 * var(--dialog-gap));
+ overflow: auto;
+ scroll-padding-block: 20px;
+}
+.modal.wide { max-width: 860px; }
+.intro-sequence {
+ top: var(--viewport-top);
+ bottom: auto;
+ height: var(--app-height);
+ background: var(--bg);
+ color: var(--ink);
+}
+.intro-sequence::backdrop { background: var(--bg); }
+.intro-shell {
+ min-height: 100%;
+ height: auto;
+ padding: calc(var(--safe-top) + var(--intro-block-gap)) max(var(--intro-gutter), var(--safe-right)) calc(var(--bottom-clearance) + var(--intro-block-gap)) max(var(--intro-gutter), var(--safe-left));
+}
+.intro-body { flex: 1; }
+.intro-brand > span, .intro-heading > p:last-child, .intro-footer { color: var(--muted); }
+.intro-controls button { color: var(--ink); border-color: var(--line); }
+.intro-controls button:hover { background: var(--surface); }
+.intro-heading .intro-kicker { color: var(--blue); }
+.intro-footer li { color: var(--muted); border-color: var(--line); }
+.intro-footer li.is-reached { color: var(--ink); border-color: var(--blue); }
+.intro-footer li[aria-current] { color: var(--blue); border-color: var(--blue); }
+.intro-static-mark { color: var(--ink); }
+.intro-enter { background: var(--ink); color: var(--bg); }
+.intro-resolution { color: var(--muted); }
+.admin-shell {
+ padding: var(--safe-top) max(var(--page-gutter), var(--safe-right)) calc(40px + var(--safe-bottom)) max(var(--page-gutter), var(--safe-left));
+}
+.admin-login {
+ min-height: var(--app-height);
+ padding: calc(var(--safe-top) + 90px) max(24px, var(--safe-right)) calc(var(--bottom-clearance) + 24px) max(24px, var(--safe-left));
+}
+.back-link { top: calc(var(--safe-top) + 20px); left: max(24px, var(--safe-left)); min-height: 44px; }
+@media (min-width: 1550px) { :root { --page-gutter: 65px; } }
+@media (max-width: 1050px) {
+ :root { --page-gutter: 27px; }
+ /* iOS focus zoom also applies to landscape phones and tablets. */
+ input, textarea, select, .composer textarea { font-size: 16px; }
+}
+@media (max-width: 700px) {
+ :root { --page-gutter: 21px; --dialog-gap: 12px; --intro-gutter: 20px; --intro-block-gap: 16px; }
+ .experience { padding-top: calc(var(--safe-top) + 4px); }
+ .site-header { height: 68px; }
+ .header-actions { gap: 9px; }
+ .header-demo { min-height: 44px; }
+ .theme-button, .send-button { width: 44px; height: 44px; }
+ .site-footer { height: 48px; }
+ .site-footer button, .site-footer .replay { min-height: 44px; }
+ /* iOS zooms form fields below 16px, obscuring both dialogs and the composer. */
+ input, textarea, select, .composer textarea { font-size: 16px; }
+ .composer textarea { line-height: 1.4; }
+ .cookie-note { gap: 9px; margin-bottom: 8px; padding: 5px 12px; }
+ .cookie-note > svg { display: none; }
+ .title-block { margin-top: 30px; }
+ .sculpture-stage { inset: 105px -10% -10px; }
+ .intro-body { padding: 20px 0 46px; }
+}
+@media (max-height: 700px) and (max-width: 700px) {
+ :root { --intro-block-gap: 12px; }
+ .title-block { margin-top: 5px; }
+ .sculpture-stage { inset: 85px -8% -12px; }
+ .intro-body { padding: 12px 0 40px; }
+}
+/* VisualViewport shrinks for a keyboard even when CSS media queries do not. */
+:root[data-compact-viewport=true] .experience .stage { display: none; }
+:root[data-compact-viewport=true] .site-header { height: 54px; }
+:root[data-compact-viewport=true] .experience .conversation {
+ width: 100%; flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end;
+}
+:root[data-compact-viewport=true] .experience .chat-history { flex: 1; min-height: 0; max-height: none; }
+:root[data-compact-viewport=true] .site-footer { height: 44px; }
+:root[data-keyboard=true] .composer-footer, :root[data-keyboard=true] .site-footer,
+:root[data-keyboard=true] .cookie-note, :root[data-keyboard=true] .suggestions { display: none; }
+:root[data-keyboard=true] .conversation { padding-bottom: 8px; }
+/* Landscape: a two-column story keeps the controls below the island and all
+   text readable. Extremely short windows can scroll the story, not clip it. */
+@media (max-height: 520px) and (min-width: 600px) {
+ :root { --intro-block-gap: 12px; --intro-gutter: 24px; }
+ .intro-body { display: grid; grid-template-columns: 1fr 1.15fr; gap: 18px; padding: 8px 0 44px; }
+ .intro-heading { min-height: 0; text-align: left; }
+ .intro-heading h2 { font-size: 24px; }
+ .intro-heading > p:last-child { font-size: 12px; }
+ .intro-heading .intro-kicker { margin-bottom: 8px; }
+ .intro-visual { height: 180px; margin-top: 0; }
+ .terminal-lines { padding: 10px 12px; font-size: 11px; }
+ .terminal-chrome { padding: 10px 12px; }
+ .terminal-chrome em { display: none; }
+ .intro-modules { scale: .58; }
+ .intro-sculpture { inset: 0; }
+ .intro-static-mark { width: 140px; height: 140px; }
+ .intro-enter { bottom: 0; left: 50%; transform: translateX(-50%); white-space: nowrap; padding: 12px 18px; }
+ .intro-footer { padding-top: 12px; }
+ .intro-footer > span { display: none; }
+ .intro-footer ol { width: 100%; }
+ .intro-footer li { flex: 1; }
+}

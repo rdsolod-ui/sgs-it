@@ -30,3 +30,10 @@ Runtime logs, backup locations and private operational reports are kept outside 
 - Generated 1200×630 social card: “Где ваш бизнес теряет деньги?”; static Open Graph/Twitter tags, canonical, descriptive title, JSON-LD, robots and sitemap. No invented prices, ratings or company details.
 - A 24-second introduction follows greeting → Python-inspired code → 8-bit modules → 16-bit core → the actual 3D mascot. It restarts on reload, supports pause/skip/Escape and stops progressing in a hidden tab. Reduced-motion users see a static introduction.
 - Dedicated browser checks cover the story, reload, controls, mobile layout, assets and raw HTML metadata.
+
+## 2026-09-16 — mobile safe areas
+
+- Shared four-sided device insets, theme-matched edge backgrounds and a light/dark intro with a landscape composition.
+- VisualViewport-aware chat and dialogs keep controls above the keyboard, including viewport panning; pinch zoom remains available.
+- Cookie notice occupies its own row; phone/tablet inputs avoid focus zoom, and closing the intro no longer focuses a text field automatically.
+- Chromium and WebKit geometry tests cover both themes and synthetic cutout/keyboard scenarios. Physical-device acceptance is documented separately in `MOBILE_VIEWPORT.md`.

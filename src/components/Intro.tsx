@@ -17,7 +17,7 @@ const code=[
  {at:9700,text:'parkops = clarity.connect(modules)'},
 ];
 const type=(text:string,time:number,start:number,pace=45)=>text.slice(0,Math.max(0,Math.floor((time-start)/pace)));
-export function Intro({reduced,onFinish}:{reduced:boolean,onFinish:()=>void}) {
+export function Intro({dark,reduced,onFinish}:{dark:boolean,reduced:boolean,onFinish:()=>void}) {
  const dialog=useRef<HTMLDialogElement>(null),elapsed=useRef(0);
  const [time,setTime]=useState(0),[paused,setPaused]=useState(false);
  const phase=reduced?4:chapters.reduce((index,c,i)=>time>=c.at?i:index,0);
@@ -26,7 +26,7 @@ export function Intro({reduced,onFinish}:{reduced:boolean,onFinish:()=>void}) {
  useEffect(()=>{
   const previous=document.activeElement as HTMLElement|null;
   dialog.current?.showModal();
-  return()=>{dialog.current?.close();requestAnimationFrame(()=>{if(previous&&previous!==document.body&&previous.isConnected)previous.focus({preventScroll:true});else document.querySelector<HTMLTextAreaElement>('.composer textarea')?.focus({preventScroll:true});});};
+  return()=>{dialog.current?.close();requestAnimationFrame(()=>{if(previous&&previous!==document.body&&previous.isConnected)previous.focus({preventScroll:true});else document.querySelector<HTMLElement>('.experience')?.focus({preventScroll:true});});};
  },[]);
  useEffect(()=>{
   if(reduced||paused)return;
@@ -48,7 +48,7 @@ export function Intro({reduced,onFinish}:{reduced:boolean,onFinish:()=>void}) {
     <div className="intro-visual" aria-hidden="true">
      {phase<=2&&<div className="intro-terminal"><div className="terminal-chrome"><span/><span/><span/><b>parkops / origin.py</b><em>Визуальная история</em></div><div className="terminal-lines">{phase===0?<><p className="terminal-hello">{type('>hello, Neo!',time,350,85)}<span className="typing-caret"/></p><p className="terminal-welcome">{type('>welcome to new SAAS project ParkOps',time,1900,65)}</p><p className="terminal-comment" style={{opacity:time>4700?1:0}}># Большая картина начинается с одной связи.</p></>:<>{code.map(line=><p key={line.at}>{type(line.text,time,line.at,32)}{time>=line.at&&time<line.at+line.text.length*32&&<span className="typing-caret"/>}</p>)}<p className="terminal-comment" style={{opacity:time>11000?1:0}}># Из отдельных источников — в общую систему.</p></>}</div></div>}
      {phase>=2&&!reduced&&<div className="intro-modules"><div className="intro-pixel-grid"/>{['ПРОДАЖИ','CRM','МАРКЕТИНГ','ОПЕРАЦИИ'].map((label,i)=><div className={'intro-module module-'+i} key={label}><span>{label}</span></div>)}<div className="intro-blue-core"/><span className="intro-resolution">{phase===2?'4 МОДУЛЯ · 8 BIT':'ОДНО ЯДРО · 16 BIT'}</span></div>}
-     {phase===4&&<div className="intro-sculpture"><Suspense fallback={<BrandMark className="intro-static-mark"/>}>{reduced?<BrandMark className="intro-static-mark"/>:<Core state="presenting" dark reduced={paused}/>}</Suspense></div>}
+     {phase===4&&<div className="intro-sculpture"><Suspense fallback={<BrandMark className="intro-static-mark"/>}>{reduced?<BrandMark className="intro-static-mark"/>:<Core state="presenting" dark={dark} reduced={paused}/>}</Suspense></div>}
     </div>
     {phase===4&&<button className="intro-enter" onClick={finish}>Начать разговор<ArrowUpRight size={18}/></button>}
    </div>

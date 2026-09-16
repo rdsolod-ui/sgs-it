@@ -56,12 +56,14 @@ jobs:
         env:
           BROWSER_HEADLESS: '1'
         run: |
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
           mkdir -p .local/preview-root
           ln -s "$PWD/dist-preview" .local/preview-root/sgs-it
           python3 -m http.server 5188 --bind 127.0.0.1 --directory .local/preview-root > /tmp/sgsit-preview.log 2>&1 &
           npm run test:preview
           npm run test:intro
+          npm run test:safe-area
+          SAFE_AREA_ENGINE=webkit npm run test:safe-area
       - name: Full CRM browser workflow
         env:
           BROWSER_HEADLESS: '1'
