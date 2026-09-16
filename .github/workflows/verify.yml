@@ -50,6 +50,15 @@ jobs:
           done
           npm run test:integration
       - run: npm run build:preview
+      - name: Public preview browser checks
+        env:
+          BROWSER_HEADLESS: '1'
+        run: |
+          npx playwright install --with-deps chromium
+          mkdir -p .local/preview-root
+          ln -s "$PWD/dist-preview" .local/preview-root/sgs-it
+          python3 -m http.server 5188 --bind 127.0.0.1 --directory .local/preview-root > /tmp/sgsit-preview.log 2>&1 &
+          npm run test:preview
       - name: Package immutable application
         run: python3 tools/package_release.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
