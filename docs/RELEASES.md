@@ -17,3 +17,9 @@
 - GitHub CI now tests the full browser workflow in addition to API and static preview checks.
 
 Runtime logs, backup locations and private operational reports are kept outside this repository.
+
+## 2026-09-16 — domain deployment support
+
+- Tracked HTTP validation and HTTPS Nginx configs for sgsit.ru/www.sgsit.ru, canonical redirects, secure production origin/cookies and automatic certificate renewal.
+- Domain preparation and activation scripts retain private backups and rollback failed activation. DNS changes are performed separately in the domain owner's panel.
+- The public interface displays a local brief instead of contact fields while collection is disabled. Nginx accepts the audit editor's validated request size.
