@@ -11,6 +11,8 @@
     "admin:create": "tsx scripts/admin.ts",
     "test": "vitest run",
     "test:e2e": "tsx tests/browser.ts",
+    "test:sales-api": "tsx tests/sales-integration.ts",
+    "test:sales-browser": "tsx tests/sales-browser.ts",
     "test:integration": "tsx tests/integration.ts",
     "test:browser": "tsx tests/browser.ts",
     "retention": "tsx scripts/retention.ts",

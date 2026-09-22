@@ -153,3 +153,9 @@ body:has(.experience) { overflow: hidden; overscroll-behavior-y: none; }
  .intro-footer ol { width: 100%; }
  .intro-footer li { flex: 1; }
 }
+
+.sales-actions { display:flex; flex-wrap:wrap; gap:8px; padding:12px 0; }
+.sales-actions button { min-height:44px; padding:8px 12px; border:1px solid var(--border, #899199); border-radius:12px; color:inherit; background:transparent; font:inherit; font-size:13px; }
+.sales-actions button:focus-visible { outline:2px solid #3478f6; outline-offset:3px; }
+.sales-actions button:disabled { opacity:.5; }
+.message p { white-space:pre-wrap; overflow-wrap:anywhere; }

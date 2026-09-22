@@ -24,3 +24,12 @@ CREATE TABLE IF NOT EXISTS lead_audits (
  updated_at timestamptz NOT NULL DEFAULT now()
 );
 INSERT INTO migrations(id) VALUES('002_lead_audits') ON CONFLICT DO NOTHING;
+
+-- Additive migration: the previous runtime can still read/write existing tables.
+CREATE TABLE IF NOT EXISTS sales_dialogues (
+ visitor_id uuid PRIMARY KEY REFERENCES visitors ON DELETE CASCADE,
+ state jsonb NOT NULL CHECK(jsonb_typeof(state)='object'),
+ updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS sales_context jsonb;
+INSERT INTO migrations(id) VALUES('003_sales_dialogue') ON CONFLICT DO NOTHING;
