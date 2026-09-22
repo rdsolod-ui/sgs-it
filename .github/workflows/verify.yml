@@ -81,9 +81,9 @@ jobs:
         run: |
           node dist-server/server/index.js > /tmp/sgsit-browser-api.log 2>&1 &
           api_pid=$!
-          npx vite --host 127.0.0.1 --port 5178 > /tmp/sgsit-vite.log 2>&1 &
+          node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5178 > /tmp/sgsit-vite.log 2>&1 &
           vite_pid=$!
-          trap 'kill "$api_pid" "$vite_pid" 2>/dev/null || true' EXIT
+          trap 'kill "$api_pid" "$vite_pid" 2>/dev/null || true; wait "$api_pid" "$vite_pid" 2>/dev/null || true' EXIT
           for attempt in {1..30}; do
             if curl -fsS http://127.0.0.1:8787/api/health; then break; fi
             sleep 1
@@ -93,6 +93,37 @@ jobs:
             sleep 1
           done
           npm run test:browser
+      - name: Attribution and notification outbox with mock Telegram
+        env:
+          BROWSER_HEADLESS: '1'
+          LEGAL_READY: 'true'
+          OPERATOR_REQUISITES: synthetic
+          PRIVACY_EMAIL: qa@example.com
+          ATTRIBUTION_ENABLED: 'true'
+          TELEGRAM_NOTIFICATIONS_ENABLED: 'true'
+          TELEGRAM_NOTIFICATIONS_APPROVED: 'true'
+          TELEGRAM_NOTIFICATION_BOT_TOKEN: '123:synthetic'
+          TELEGRAM_NOTIFICATION_BOT_ID: '123'
+          TELEGRAM_NOTIFICATION_CHAT_ID: '-1001234567'
+          LEGAL_POLICY_VERSION: synthetic-1
+          TELEGRAM_NOTIFICATION_NOTICE: Synthetic notification disclosure for isolated tests only
+        run: |
+          node dist-server/server/index.js > /tmp/sgsit-outbox-api.log 2>&1 &
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true; wait "$api_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:8787/api/health; then break; fi
+            sleep 1
+          done
+          npm run test:outbox
+          node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5178 > /tmp/sgsit-notification-ui.log 2>&1 &
+          vite_pid=$!
+          trap 'kill "$api_pid" "$vite_pid" 2>/dev/null || true; wait "$api_pid" "$vite_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:5178/; then break; fi
+            sleep 1
+          done
+          npm run test:notifications-browser
       - name: Package immutable application
         run: python3 tools/package_release.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -16,6 +16,7 @@ docs/*
 !docs/RELEASES.md
 !docs/MOBILE_VIEWPORT.md
 !docs/SALES_MANAGER.md
+!docs/NOTIFICATIONS.md
 tools/*
 !tools/package_release.py
 assets/blender/*.blend1

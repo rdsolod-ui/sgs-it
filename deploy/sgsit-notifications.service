@@ -1,0 +1,19 @@
+[Unit]
+Description=SGS IT notification outbox worker
+After=network.target postgresql.service
+[Service]
+Type=simple
+User=sgsit
+Group=sgsit
+WorkingDirectory=/srv/sgsit/current
+EnvironmentFile=/etc/sgsit/app.env
+ExecStart=/usr/bin/node dist-server/scripts/notification-worker.js
+Restart=on-failure
+RestartSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+[Install]
+WantedBy=multi-user.target

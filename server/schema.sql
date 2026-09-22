@@ -33,3 +33,51 @@ CREATE TABLE IF NOT EXISTS sales_dialogues (
 );
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS sales_context jsonb;
 INSERT INTO migrations(id) VALUES('003_sales_dialogue') ON CONFLICT DO NOTHING;
+
+-- 004: bounded source snapshots and a durable outbox without copied contacts.
+ALTER TABLE visitors ADD COLUMN IF NOT EXISTS telegram_verified boolean NOT NULL DEFAULT false;
+CREATE TABLE IF NOT EXISTS visitor_sources (
+ visitor_id uuid PRIMARY KEY REFERENCES visitors ON DELETE CASCADE,
+ first_touch jsonb NOT NULL,
+ last_touch jsonb NOT NULL,
+ updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS attribution jsonb;
+CREATE TABLE IF NOT EXISTS notification_outbox (
+ id uuid PRIMARY KEY,
+ lead_id uuid REFERENCES leads ON DELETE SET NULL,
+ event text NOT NULL DEFAULT 'lead.created.v1',
+ operation text NOT NULL DEFAULT 'send' CHECK(operation IN ('send','delete')),
+ status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','leased','sending','retry','sent','failed','uncertain','cancelled','deleted')),
+ target_chat text NOT NULL,
+ bot_id text NOT NULL,
+ attempts integer NOT NULL DEFAULT 0 CHECK(attempts>=0),
+ next_attempt_at timestamptz NOT NULL DEFAULT now(),
+ lease_token uuid,
+ lease_until timestamptz,
+ message_id bigint,
+ error_code text,
+ sent_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(lead_id,event)
+);
+CREATE INDEX IF NOT EXISTS notification_outbox_due ON notification_outbox(next_attempt_at,created_at) WHERE status IN ('pending','retry');
+CREATE INDEX IF NOT EXISTS notification_outbox_leases ON notification_outbox(lease_until) WHERE status IN ('leased','sending');
+CREATE TABLE IF NOT EXISTS notification_attempts (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ notification_id uuid NOT NULL REFERENCES notification_outbox ON DELETE CASCADE,
+ lease_token uuid NOT NULL UNIQUE,
+ operation text NOT NULL,
+ outcome text NOT NULL DEFAULT 'sending',
+ error_code text,
+ started_at timestamptz NOT NULL DEFAULT now(),
+ finished_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS notification_attempts_notification ON notification_attempts(notification_id);
+CREATE TABLE IF NOT EXISTS notification_worker (
+ id boolean PRIMARY KEY DEFAULT true CHECK(id),
+ heartbeat_at timestamptz NOT NULL DEFAULT now(),
+ error_code text
+);
+INSERT INTO migrations(id) VALUES('004_attribution_outbox') ON CONFLICT DO NOTHING;
