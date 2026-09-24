@@ -2,7 +2,7 @@ import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 const url=process.env.PREVIEW_URL||'http://127.0.0.1:5188/sgs-it/';
-const browser=process.env.BROWSER_HEADLESS==='1'?await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader']}):await chromium.connectOverCDP(process.env.BROWSER_CDP_URL||'http://127.0.0.1:9223');
+const browser=process.env.BROWSER_HEADLESS==='1'?await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE,args:['--enable-unsafe-swiftshader']}):await chromium.connectOverCDP(process.env.BROWSER_CDP_URL||'http://127.0.0.1:9223');
 const context=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce'});const page=await context.newPage();const errors:string[]=[],apiCalls:string[]=[],badResources:string[]=[];
 page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(new URL(r.url()).pathname.includes('/api/'))apiCalls.push(r.url());});page.on('response',r=>{if(r.status()>=400)badResources.push(r.url()+':'+r.status());});
 await context.addInitScript(()=>{sessionStorage.setItem('sgs-intro','1');localStorage.setItem('sgs-cookies','essential-only');});const tests:string[]=[];

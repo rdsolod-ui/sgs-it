@@ -43,3 +43,14 @@ Runtime logs, backup locations and private operational reports are kept outside 
 - SGS IT has separate website and admin links to https://sgsit.ru/ and https://sgsit.ru/admin.
 - The card uses two keyboard-accessible anchors inside an article; the static preview remains available separately.
 - The scoped card fragment lives in `deploy/catalog/sgs-it.html`; README lists current public endpoints. Application runtime is unchanged.
+
+
+## 2026-09-24 — scenario sales dialogue and notification foundation on sgsit.ru
+
+- Deployed commit `1b245d76b614ce541b0e411f0e5cbd6f679ad8ed` from successful [CI 35764219011](https://github.com/rdsolod-ui/sgs-it/actions/runs/35764219011): 193 checks, exact commit artifact, 62 manifest entries. Static preview was not redeployed.
+- Added scenario qualification, confirmation/correction/skip paths, offer registry and server-owned CRM profile snapshots. Source snapshots, exports, notification outbox and monitoring are available in code; collection, attribution and real notification delivery remain disabled.
+- Applied additive migrations 003 and 004 after restoring and checking a database backup. Existing lead data remained intact. Post-migration restoration and the previous runtime against the restored new schema passed; an atomic rollback script retains the additive schema.
+- All 27 public files matched the CI artifact over HTTPS. Authenticated CRM API checks covered existing leads, new nullable fields, conversation journal, disabled empty notification queue and revocation of the temporary verification session.
+- The initial external check caught restrictive directory permissions on the new static tree. Nginx traversal/read access was corrected and public checks repeated successfully. Environment configuration was unchanged; demo and collection gates were verified after publication.
+- Live acceptance passed 13 HTTP/browser checks: full profile, confirmation, correction, closed collection, both themes at 320/390/768/1440, persistence after reload, CRM login screen and no uncaught browser errors. Synthetic sessions and usage were removed; physical devices were not tested.
+- Private backup paths, installer scripts, browser evidence and rollback coordinates are recorded in local release evidence and project notes; no credentials enter the repository.
